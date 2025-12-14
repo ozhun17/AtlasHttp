@@ -23,8 +23,11 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 add_executable(AtlasHttp
         main.cpp
-        Include/HttpServer.h
+        Include/HttpServer/HttpServer.h
         Include/Logger.h
+        Include/MetricManager.h
+        Include/Namespace.h
+        Include/HttpServer/AsyncReaderWriter.h
 )
 
 target_link_libraries(AtlasHttp

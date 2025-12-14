@@ -24,7 +24,9 @@
 #include <boost/log/attributes/current_thread_id.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/attributes/value_extraction.hpp>
+#include "Namespace.h"
 
+AtlasNamespaceBegin
 enum class LogLevel { Verbose = 0, Debug, Info, Warning, Error, Fatal };
 
 class LogManager {
@@ -53,6 +55,7 @@ public:
         if (c.toConsole) {
             typedef sinks::synchronous_sink<sinks::text_ostream_backend> console_sink_t;
             boost::shared_ptr<console_sink_t> consoleSink = boost::make_shared<console_sink_t>();
+            consoleSink->locked_backend()->auto_flush(true);
             consoleSink->locked_backend()->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
             bool useColor = c.colorConsole;
             consoleSink->set_formatter([useColor](boost::log::record_view const& rec, boost::log::formatting_ostream& strm) {
@@ -161,4 +164,5 @@ inline std::ostream& operator<<(std::ostream& os, LogLevel lv) {
 #define Logger(level) \
     BOOST_LOG_SEV(LogManager::GetLogger(), LogLevel::level)
 
+AtlasNamespaceEnd
 #endif //ATLASHTTP_LOGGER_H
