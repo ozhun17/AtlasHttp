@@ -9,14 +9,13 @@
 int main()
 {
     auto conf =LogManager::Config();
+    conf.filePath= "logs.txt";
+    conf.toFile = true;
+    conf.minLevel = LogLevel::Verbose;
     LogManager::Init(conf);
-    const auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
-    Logger(Info) << "Hello";
-    for (int i = 1; i <= 5; i++)
-    {
-        std::cout << "i = " << i << std::endl;
-    }
+    Logger(Info) << "Hello and welcome to Atlas Http";
+    boost::asio::io_context context;
+    auto server = HTTPServer(context);
 
     return 0;
 }

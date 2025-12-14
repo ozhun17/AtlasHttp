@@ -25,7 +25,7 @@
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/attributes/value_extraction.hpp>
 
-enum class LogLevel { Trace = 0, Debug, Info, Warning, Error, Fatal };
+enum class LogLevel { Verbose = 0, Debug, Info, Warning, Error, Fatal };
 
 class LogManager {
 public:
@@ -123,7 +123,7 @@ private:
 
     static const char* sevToStr(LogLevel lv) {
         switch (lv) {
-        case LogLevel::Trace: return "TRACE";
+        case LogLevel::Verbose: return "TRACE";
         case LogLevel::Debug: return "DEBUG";
         case LogLevel::Info: return "INFO";
         case LogLevel::Warning: return "WARN";
@@ -135,7 +135,7 @@ private:
 
     static const char* sevToColor(LogLevel lv) {
         switch (lv) {
-        case LogLevel::Trace: return "\x1b[37m";
+        case LogLevel::Verbose: return "\x1b[37m";
         case LogLevel::Debug: return "\x1b[36m";
         case LogLevel::Info: return "\x1b[32m";
         case LogLevel::Warning: return "\x1b[33m";
@@ -148,7 +148,7 @@ private:
 
 inline std::ostream& operator<<(std::ostream& os, LogLevel lv) {
     switch (lv) {
-    case LogLevel::Trace: return os << "TRACE";
+    case LogLevel::Verbose: return os << "TRACE";
     case LogLevel::Debug: return os << "DEBUG";
     case LogLevel::Info: return os << "INFO";
     case LogLevel::Warning: return os << "WARN";
