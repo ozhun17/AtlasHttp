@@ -23,6 +23,9 @@ struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>
     void StartAsyncRead() {
         AsyncReadNext();
     }
+    ~AsyncReaderWriter() {
+        Logger(Verbose) << "Closing Async ReaderWriter";
+    }
 
     void Process()
     {
@@ -79,9 +82,13 @@ struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>
                 {
                     if (!ec)
                     {
+                        Logger(Verbose) << "Http Server read some from connection: " << self->_socket->remote_endpoint().address();
                         self->_version = self->_request.version();
                         MetricManager::The()._httpRequests++;
                         self->Process();
+                    }
+                    else {
+                        Logger(Verbose) << "Http server couldn't read next for connection: " << self->_socket->remote_endpoint().address();
                     }
                 }));
     }
@@ -108,6 +115,7 @@ struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>
                         return;
                     }
                     Logger(Info) << "KeepAlive:" << std::to_string(self->_response->keep_alive());
+                    Logger(Verbose) << "Http Server wrote async for connection: " << self->_socket->remote_endpoint().address();
 
                     if (!(self->_response->keep_alive()))
                     {

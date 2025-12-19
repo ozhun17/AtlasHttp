@@ -19,6 +19,7 @@
 #include <nlohmann/json.hpp>
 #include "AsyncReaderWriter.h"
 #include "../Namespace.h"
+#include "../Logger.h"
 
 AtlasNamespaceBegin
 
@@ -51,12 +52,14 @@ public:
     }
     void StartAccept()
     {
+        Logger(Verbose) << "Http Server Accepting Connections...";
         _acceptor->async_accept(
             boost::asio::make_strand(_ioContext),
             [this](const boost::system::error_code& ec, boost::asio::ip::tcp::socket socket)
             {
                 if (!ec)
                 {
+                    Logger(Verbose) << "Http Server Accepted Connection. remote_id = " << socket.remote_endpoint().address();;
                     auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
                     auto strand = boost::asio::make_strand(_ioContext);
                     const auto sharedResponder = std::make_shared<AsyncReaderWriter>(std::move(socketPtr), strand);

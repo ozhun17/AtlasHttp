@@ -37,7 +37,7 @@ public:
         std::string filePath = "app.log";
         std::size_t maxFileSize = 10 * 1024 * 1024;
         unsigned maxFiles = 5;
-        LogLevel minLevel = LogLevel::Info;
+        LogLevel minLevel = LogLevel::Verbose;
         bool colorConsole = true;
     };
 
@@ -48,13 +48,13 @@ public:
         namespace sinks = boost::log::sinks;
         namespace expr = boost::log::expressions;
         namespace attrs = boost::log::attributes;
-        auto core = logging::core::get();
+        const auto core = logging::core::get();
         core->remove_all_sinks();
         logging::add_common_attributes();
         core->add_global_attribute("ThreadID", attrs::current_thread_id());
         if (c.toConsole) {
             typedef sinks::synchronous_sink<sinks::text_ostream_backend> console_sink_t;
-            boost::shared_ptr<console_sink_t> consoleSink = boost::make_shared<console_sink_t>();
+            const auto consoleSink = boost::make_shared<console_sink_t>();
             consoleSink->locked_backend()->auto_flush(true);
             consoleSink->locked_backend()->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
             bool useColor = c.colorConsole;
@@ -66,9 +66,9 @@ public:
                 auto th = boost::log::extract<boost::log::attributes::current_thread_id::value_type>("ThreadID", rec);
                 if (th) strm << "[" << th.get() << "] ";
                 if (useColor) {
-                    strm << LogManager::sevToColor(lv) << "<" << LogManager::sevToStr(lv) << ">" << "\x1b[0m" << ": ";
+                    strm << sevToColor(lv) << "<" << sevToStr(lv) << ">" << "\x1b[0m" << ": ";
                 } else {
-                    strm << "<" << LogManager::sevToStr(lv) << ">: ";
+                    strm << "<" << sevToStr(lv) << ">: ";
                 }
                 strm << rec[expr::smessage];
             });
@@ -124,7 +124,7 @@ private:
         return lg;
     }
 
-    static const char* sevToStr(LogLevel lv) {
+    static const char* sevToStr(const LogLevel & lv) {
         switch (lv) {
         case LogLevel::Verbose: return "TRACE";
         case LogLevel::Debug: return "DEBUG";
@@ -136,7 +136,7 @@ private:
         return "UNKNOWN";
     }
 
-    static const char* sevToColor(LogLevel lv) {
+    static const char* sevToColor(const LogLevel & lv) {
         switch (lv) {
         case LogLevel::Verbose: return "\x1b[37m";
         case LogLevel::Debug: return "\x1b[36m";
@@ -149,7 +149,7 @@ private:
     }
 };
 
-inline std::ostream& operator<<(std::ostream& os, LogLevel lv) {
+inline std::ostream& operator<<(std::ostream& os, const LogLevel & lv) {
     switch (lv) {
     case LogLevel::Verbose: return os << "TRACE";
     case LogLevel::Debug: return os << "DEBUG";
