@@ -17,8 +17,10 @@ struct MetricManager
         return m;
     }
 
-    int _httpResponses = 0;
-    int _httpRequests = 0;
+    std::atomic<int> _currentHttpConnections = 0;
+    std::atomic<int> _finishedHttpConnections = 0;
+    std::atomic<int> _httpResponses = 0;
+    std::atomic<int> _httpRequests = 0;
 };
 
 AtlasNamespaceEnd
