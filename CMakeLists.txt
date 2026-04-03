@@ -12,9 +12,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 
-find_package(Boost 1.82 REQUIRED
-        COMPONENTS log log_setup program_options regex filesystem thread
+find_package(Boost 1.90 REQUIRED
+        COMPONENTS log log_setup program_options beast regex filesystem thread
 )
+find_package(nlohmann_json CONFIG REQUIRED)
 
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libs: ${Boost_LIBRARIES}")
@@ -37,6 +38,8 @@ target_link_libraries(AtlasHttp
         Boost::regex
         Boost::filesystem
         Boost::thread
+        ws2_32
+        wsock32
 )
 
 target_compile_definitions(AtlasHttp PRIVATE
