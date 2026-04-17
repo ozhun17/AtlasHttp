@@ -5,14 +5,11 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-
 #include <Logger.h>
 #include <boost/asio.hpp>
-
-#include "Include/HttpServer.h"
-#include "Include/Namespace.h"
-
-
+#include "include/HttpServer.h"
+#include "include/Namespace.h"
+#include "example/EndpointPopulator.h"
 
 UsingAtlasNamespace
 UsingAtlasHttpNamespace
@@ -30,6 +27,7 @@ int main()
     Logger(Info) << "Hello and welcome to Atlas Http";
     boost::asio::io_context context;
     auto server = HTTPServer(context);
+    EndpointPopulator{}(server);
     server.Start("0.0.0.0", "1411");
     constexpr auto threadCount = 4;
     const auto threadPool = std::make_shared<boost::asio::thread_pool>(threadCount);

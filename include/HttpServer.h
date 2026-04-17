@@ -11,12 +11,6 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <boost/asio.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <nlohmann/json.hpp>
 #include "AsyncReaderWriter.h"
 #include "Namespace.h"
 
@@ -61,11 +55,21 @@ public:
                     Logger(Verbose) << "Http Server Accepted Connection. remote_id = " << socket.remote_endpoint().address();;
                     auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
                     auto strand = boost::asio::make_strand(_ioContext);
-                    const auto sharedResponder = std::make_shared<AsyncReaderWriter>(std::move(socketPtr), strand);
+                    const auto sharedResponder = std::make_shared<AsyncReaderWriter>(std::move(socketPtr), strand, _requestHandlers);
                     sharedResponder->StartAsyncRead();
                 }
                 StartAccept();
             });
+    }
+
+    void AddRequestHandler(const std::string& target, boost::beast::http::verb verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)> handler)
+    {
+        _requestHandlers.emplace(target, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>
+        (
+            std::initializer_list<std::pair<const boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>>{
+                { verb, std::move(handler) }
+            }
+        ));
     }
 
 
@@ -91,6 +95,7 @@ public:
     }
 
 private:
+    std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> _requestHandlers;
     boost::asio::io_context & _ioContext;
     std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 };

@@ -37,6 +37,9 @@ add_executable(AtlasHttp
         Include/MetricManager.h
         Include/Namespace.h
         Include/AsyncReaderWriter.h
+        Include/ConnectionContext.h
+        Include/AsyncMethodResponder.h
+        Include/AsyncReader.h
 )
 
 target_link_libraries(AtlasHttp
