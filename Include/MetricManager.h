@@ -4,8 +4,9 @@
 
 #ifndef ATLASHTTP_METRICMANAGER_H
 #define ATLASHTTP_METRICMANAGER_H
+#include <atomic>
 #include "Namespace.h"
-AtlasNamespaceBegin
+AtlasHttpNamespaceBegin
 
 
 
@@ -23,5 +24,5 @@ struct MetricManager
     std::atomic<int> _httpRequests = 0;
 };
 
-AtlasNamespaceEnd
+AtlasHttpNamespaceEnd
 #endif //ATLASHTTP_METRICMANAGER_H

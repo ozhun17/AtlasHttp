@@ -18,10 +18,9 @@
 #include <boost/beast/http.hpp>
 #include <nlohmann/json.hpp>
 #include "AsyncReaderWriter.h"
-#include "../Namespace.h"
-#include "../Logger.h"
+#include "Namespace.h"
 
-AtlasNamespaceBegin
+AtlasHttpNamespaceBegin
 
 class HTTPServer
 {
@@ -96,5 +95,5 @@ private:
     std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 };
 
-AtlasNamespaceEnd
+AtlasHttpNamespaceEnd
 #endif //ATLASHTTP_HTTPSERVER_H

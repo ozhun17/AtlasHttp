@@ -4,10 +4,9 @@
 
 #ifndef ATLASHTTP_ASYNCREADERWRITER_H
 #define ATLASHTTP_ASYNCREADERWRITER_H
-#include "../Namespace.h"
-#include "../Logger.h"
-#include "../MetricManager.h"
-AtlasNamespaceBegin
+#include "Namespace.h"
+#include "MetricManager.h"
+AtlasHttpNamespaceBegin
 
 struct ConnectionContext
 {
@@ -99,7 +98,6 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
                         sharedReader->AsyncReadNextRequest();
                         return;
                     }
-                    Logger(Info) << "KeepAlive:" << std::to_string(connectionContext._response->keep_alive());
                     Logger(Verbose) << "Http Server wrote async for connection: " << connectionContext._socket->remote_endpoint().address();
 
                     if (!(connectionContext._response->keep_alive()))
@@ -214,5 +212,5 @@ struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>, Asyn
 };
 
 
-AtlasNamespaceEnd
+AtlasHttpNamespaceEnd
 #endif //ATLASHTTP_ASYNCREADERWRITER_H

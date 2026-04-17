@@ -5,6 +5,12 @@ project(AtlasHttp LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable debug symbols
+if(MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+endif()
+
 #   -DCMAKE_TOOLCHAIN_FILE=<vcpkg_root>/scripts/buildsystems/vcpkg.cmake
 #   -DVCPKG_TARGET_TRIPLET=x64-windows or x64-windows-static
 
@@ -13,7 +19,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 find_package(Boost 1.90 REQUIRED
-        COMPONENTS log log_setup program_options beast regex filesystem thread
+        COMPONENTS log log_setup program_options beast regex filesystem thread system
 )
 find_package(nlohmann_json CONFIG REQUIRED)
 
@@ -22,16 +28,19 @@ message(STATUS "Boost libs: ${Boost_LIBRARIES}")
 
 include_directories(${Boost_INCLUDE_DIRS})
 
+add_subdirectory(external/atlas-logger)
+include_directories(external/atlas-logger/include)
+
 add_executable(AtlasHttp
         main.cpp
-        Include/HttpServer/HttpServer.h
-        Include/Logger.h
+        Include/HttpServer.h
         Include/MetricManager.h
         Include/Namespace.h
-        Include/HttpServer/AsyncReaderWriter.h
+        Include/AsyncReaderWriter.h
 )
 
 target_link_libraries(AtlasHttp
+        AtlasLogger
         Boost::log
         Boost::log_setup
         Boost::program_options

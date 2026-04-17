@@ -6,8 +6,8 @@
 #define ATLASHTTP_NAMESPACE_H
 #pragma once
 
-#define AtlasNamespaceBegin namespace AtlasHttp{
-#define AtlasNamespaceEnd };
-#define UsingAtlasNamespace using namespace AtlasHttp;
+#define AtlasHttpNamespaceBegin namespace Atlas { namespace Http{
+#define AtlasHttpNamespaceEnd }};
+#define UsingAtlasHttpNamespace using namespace Atlas::Http;
 
 #endif //ATLASHTTP_NAMESPACE_H
