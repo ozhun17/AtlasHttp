@@ -71,8 +71,7 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
             return;
         }
         _connectionContext._response->prepare_payload();
-        boost::beast::http::async_write(
-            *_connectionContext._socket,
+        _connectionContext.AsyncWrite(
             *_connectionContext._response,
             boost::asio::bind_executor(
                 _connectionContext._strand,
@@ -82,23 +81,23 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
                     if (ec)
                     {
                         boost::system::error_code ec2;
-                        connectionContext._socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec2); // NOLINT(*-unused-return-value)
+                        connectionContext.ShutdownBoth(ec2);
                         if (ec2)
                         {
-                            Logger(Error) << "Connection Teardown!" << ec.message();
+                            Logger(Error) << "Connection Teardown! " << ec2.message();
                         }
                         sharedReader->AsyncReadNextRequest();
                         return;
                     }
-                    Logger(Verbose) << "Http Server wrote async for connection: " << connectionContext._socket->remote_endpoint().address();
+                    Logger(Verbose) << "Http Server wrote async for connection: " << connectionContext.RemoteEndpoint().address();
 
                     if (!(connectionContext._response->keep_alive()))
                     {
                         boost::system::error_code ec2;
-                        connectionContext._socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec2); // NOLINT(*-unused-return-value)
+                        connectionContext.ShutdownSend(ec2);
                         if (ec2)
                         {
-                            Logger(Error) << "Connection Teardown!" << ec.message();
+                            Logger(Error) << "Connection Teardown! " << ec2.message();
                         }
                         sharedReader->AsyncReadNextRequest();
                         return;

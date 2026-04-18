@@ -22,9 +22,12 @@ find_package(Boost 1.90 REQUIRED
         COMPONENTS log log_setup program_options beast regex filesystem thread system
 )
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")
 message(STATUS "Boost libs: ${Boost_LIBRARIES}")
+message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+message(STATUS "OpenSSL libs: ${OPENSSL_LIBRARIES}")
 
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -48,6 +51,8 @@ target_link_libraries(AtlasHttp INTERFACE
     Boost::filesystem
     Boost::thread
     Boost::system
+    OpenSSL::SSL
+    OpenSSL::Crypto
     nlohmann_json::nlohmann_json
     $<$<PLATFORM_ID:Windows>:ws2_32>
     $<$<PLATFORM_ID:Windows>:wsock32>

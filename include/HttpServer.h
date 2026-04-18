@@ -9,8 +9,11 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
+#include <variant>
+#include <boost/asio/ssl.hpp>
 #include "AsyncRequestProcessor.h"
 #include "Namespace.h"
 
@@ -27,12 +30,22 @@ public:
         Stop();
     }
 
-    void Start(const std::string& address, const std::string& port)
+    void Start(const std::string& address, const std::string& port, bool useHttps = false, const std::string& certificateChainFile = {}, const std::string& privateKeyFile = {}, const std::string& dhParamsFile = {})
     {
+        _useHttps = useHttps;
+        if (_useHttps)
+        {
+            if (certificateChainFile.empty() || privateKeyFile.empty())
+            {
+                throw std::invalid_argument("HTTPS requires certificate chain and private key files.");
+            }
+            ConfigureSslContext(certificateChainFile, privateKeyFile, dhParamsFile);
+        }
+
         auto const addr = boost::asio::ip::make_address(address);
         auto const endpoint = boost::asio::ip::tcp::endpoint{ addr, static_cast<uint16_t>(std::stoi(port)) };
 
-        std::cout << "HTTP Server initializing at " << address << ":" << port << std::endl;
+        std::cout << (_useHttps ? "HTTPS" : "HTTP") << " Server initializing at " << address << ":" << port << std::endl;
 
         // create and open the acceptor on the server io_context
         _acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(_ioContext);
@@ -56,11 +69,26 @@ public:
             {
                 if (!ec)
                 {
-                    Logger(Verbose) << "Http Server Accepted Connection. remote_id = " << socket.remote_endpoint().address();;
-                    auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
+                    Logger(Verbose) << "Http Server Accepted Connection. remote_id = " << socket.remote_endpoint().address();
                     auto strand = boost::asio::make_strand(_ioContext);
-                    const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(socketPtr), strand, _requestHandlers);
-                    sharedResponder->StartAsyncRead();
+                    if (_useHttps)
+                    {
+                        auto sslStream = std::make_unique<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(std::move(socket), *_sslContext);
+                        ConnectionContext connection(std::move(sslStream), strand);
+                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers);
+                        sharedResponder->StartAsyncRead();
+                    }
+                    else
+                    {
+                        auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
+                        ConnectionContext connection(std::move(socketPtr), strand);
+                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers);
+                        sharedResponder->StartAsyncRead();
+                    }
+                }
+                else
+                {
+                    Logger(Error) << "Accept error: " << ec.message();
                 }
                 StartAccept();
             });
@@ -68,15 +96,11 @@ public:
 
     void AddRequestHandler(const std::string& target, boost::beast::http::verb verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)> handler)
     {
-        _requestHandlers.emplace(target, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>
-        (
-            std::initializer_list<std::pair<const boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>>{
-                { verb, std::move(handler) }
-            }
-        ));
+        auto & methods = _requestHandlers[target];
+        methods.emplace(verb, std::move(handler));
     }
 
-
+    
     void Stop()
     {
         _shouldStop = true;
@@ -99,8 +123,28 @@ public:
         }
     }
 
+
 private:
+    void ConfigureSslContext(const std::string& certificateChainFile, const std::string& privateKeyFile, const std::string& dhParamsFile)
+    {
+        _sslContext = std::make_unique<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12_server);
+        _sslContext->set_options(
+            boost::asio::ssl::context::default_workarounds |
+            boost::asio::ssl::context::no_sslv2 |
+            boost::asio::ssl::context::no_sslv3 |
+            boost::asio::ssl::context::single_dh_use);
+        _sslContext->use_certificate_chain_file(certificateChainFile);
+        _sslContext->use_private_key_file(privateKeyFile, boost::asio::ssl::context::pem);
+        if (!dhParamsFile.empty())
+        {
+            _sslContext->use_tmp_dh_file(dhParamsFile);
+        }
+    }
+
+private:
+    bool _useHttps = false;
     bool _shouldStop = false;
+    std::unique_ptr<boost::asio::ssl::context> _sslContext;
     std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> _requestHandlers;
     boost::asio::io_context & _ioContext;
     std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;

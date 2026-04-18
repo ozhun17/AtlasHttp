@@ -10,15 +10,33 @@ AtlasHttpNamespaceBegin
 struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcessor>, AsyncReader
 {
     AsyncRequestProcessor(
-        std::unique_ptr<boost::asio::ip::tcp::socket> socket,
-        boost::asio::any_io_executor strand,
+        ConnectionContext connectionContext,
         const std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> & requestHandlers
     )
-        : _connectionContext(std::move(socket), std::move(strand)), _requestHandlers(std::move(requestHandlers))
+        : _connectionContext(std::move(connectionContext)), _requestHandlers(requestHandlers)
     {
     }
 
     void StartAsyncRead() {
+        if (_connectionContext.IsSecure())
+        {
+            _connectionContext.AsyncHandshake(boost::asio::ssl::stream_base::server,
+                boost::asio::bind_executor(
+                    _connectionContext._strand,
+                    [self = shared_from_this()](const boost::system::error_code& ec)
+                    {
+                        if (!ec)
+                        {
+                            self->AsyncReadNextRequest();
+                        }
+                        else
+                        {
+                            Logger(Error) << "HTTPS handshake failed: " << ec.message();
+                        }
+                    }));
+            return;
+        }
+
         AsyncReadNextRequest();
     }
     ~AsyncRequestProcessor() override
@@ -62,23 +80,22 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
         _connectionContext.Reset();
         _buffer.consume(_buffer.size());
 
-        boost::beast::http::async_read(
-            *_connectionContext._socket,
+        _connectionContext.AsyncRead(
             _buffer,
             _connectionContext._request,
             boost::asio::bind_executor(
                 _connectionContext._strand,
-                [self = shared_from_this()](const boost::beast::error_code& ec, std::size_t)
+                [self = shared_from_this()](const boost::system::error_code& ec, std::size_t)
                 {
                     if (!ec)
                     {
-                        Logger(Verbose) << "Http Server read some from connection: " << self->_connectionContext._socket->remote_endpoint().address();
+                        Logger(Verbose) << "Http Server read some from connection: " << self->_connectionContext.RemoteEndpoint().address();
                         self->_connectionContext._version = self->_connectionContext._request.version();
                         ++MetricManager::The()._httpRequests;
                         self->Process();
                     }
                     else {
-                        Logger(Verbose) << "Http server couldn't read next for connection: " << self->_connectionContext._socket->remote_endpoint().address();
+                        Logger(Verbose) << "Http server couldn't read next for connection: " << self->_connectionContext.RemoteEndpoint().address();
                     }
                 }));
     }

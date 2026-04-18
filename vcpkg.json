@@ -10,6 +10,7 @@
     "boost-filesystem",
     "boost-thread",
     "boost-system",
-    "nlohmann-json"
+    "nlohmann-json",
+    "openssl"
   ]
 }

@@ -28,7 +28,10 @@ int main()
     boost::asio::io_context context;
     auto server = HTTPServer(context);
     EndpointPopulator{}(server);
-    server.Start("0.0.0.0", "1411");
+    constexpr bool useHttps = false;
+    const auto certificateFile = "certfile.pem";
+    const auto privateKeyFile = "keyfile.pem";
+    server.Start("0.0.0.0", "1411", useHttps, certificateFile, privateKeyFile);
     constexpr auto threadCount = 4;
     const auto threadPool = std::make_shared<boost::asio::thread_pool>(threadCount);
     boost::asio::post(*threadPool, [&context]()
