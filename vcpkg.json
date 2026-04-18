@@ -1,0 +1,16 @@
+{
+  "name": "atlashttp",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "boost-asio",
+    "boost-beast",
+    "boost-log",
+    "boost-log-setup",
+    "boost-program-options",
+    "boost-regex",
+    "boost-filesystem",
+    "boost-thread",
+    "boost-system",
+    "nlohmann-json"
+  ]
+}

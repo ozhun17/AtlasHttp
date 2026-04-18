@@ -1,0 +1,106 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            triplet: x64-linux
+            compiler: gcc
+          - os: macos-latest
+            triplet: x64-osx
+            compiler: clang
+          - os: windows-latest
+            triplet: x64-windows-dynamic
+            compiler: msvc
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgDirectory: ${{ runner.workspace }}/vcpkg
+        vcpkgGitCommitId: '01f602195983451bc12c2126682e5f907d89d206'
+        appendedCacheKey: ${{ matrix.triplet }}
+        additionalCachedPaths: ${{ runner.workspace }}/build/vcpkg_installed
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Debug `
+          -DCMAKE_TOOLCHAIN_FILE="${{ runner.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+      shell: pwsh
+
+    - name: Build
+      run: cmake --build build --config Debug
+      shell: pwsh
+
+    - name: Start server and test /ready endpoint
+      run: |
+        # Start the server in background
+        $process = Start-Process -FilePath ".\build\example\AtlasHttpExample.exe" -PassThru
+        $pid = $process.Id
+        
+        # Give server time to start
+        Start-Sleep -Seconds 2
+        
+        try {
+          # Test the /ready endpoint
+          $response = Invoke-WebRequest -Uri "http://127.0.0.1:1411/ready" -Method GET
+          
+          # Verify response
+          if ($response.StatusCode -eq 200) {
+            Write-Output "✓ Server is ready and responding correctly"
+            Write-Output "Response: $($response.Content)"
+          } else {
+            Write-Output "✗ Unexpected status code: $($response.StatusCode)"
+            exit 1
+          }
+        } finally {
+          # Send SIGTERM to gracefully shut down the server
+          Write-Output "Sending SIGTERM to process $pid"
+          Stop-Process -Id $pid -ErrorAction SilentlyContinue
+        }
+      shell: pwsh
+      timeout-minutes: 2
+      if: matrix.os == 'windows-latest'
+
+    - name: Start server and test /ready endpoint (Linux/macOS)
+      run: |
+        # Start the server in background
+        ./build/example/AtlasHttpExample &
+        PID=$!
+        
+        sleep 2
+        
+        trap "kill -TERM $PID 2>/dev/null" EXIT
+        
+        # Test the /ready endpoint
+        RESPONSE=$(curl -s -w "\n%{http_code}" http://127.0.0.1:1411/ready)
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | sed '$d')
+        
+        # Verify response
+        if [ "$HTTP_CODE" = "200" ]; then
+          echo "✓ Server is ready and responding correctly"
+          echo "Response: $BODY"
+        else
+          echo "✗ Unexpected status code: $HTTP_CODE"
+          exit 1
+        fi
+      shell: bash
+      timeout-minutes: 2
+      if: matrix.os != 'windows-latest'
