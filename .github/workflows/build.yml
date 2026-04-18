@@ -71,7 +71,7 @@ jobs:
       run: |
         # Start the server in background
         $process = Start-Process -FilePath ".\build\example\Debug\AtlasHttpExample.exe" -PassThru
-        $pid = $process.Id
+        $processId = $process.Id
         
         # Give server time to start
         Start-Sleep -Seconds 2
@@ -90,8 +90,8 @@ jobs:
           }
         } finally {
           # Send SIGTERM to gracefully shut down the server
-          Write-Output "Sending SIGTERM to process $pid"
-          Stop-Process -Id $pid -ErrorAction SilentlyContinue
+          Write-Output "Sending SIGTERM to process $processId"
+          Stop-Process -Id $processId -ErrorAction SilentlyContinue
         }
       shell: pwsh
       timeout-minutes: 2
