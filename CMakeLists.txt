@@ -49,13 +49,13 @@ target_link_libraries(AtlasHttp INTERFACE
     Boost::thread
     Boost::system
     nlohmann_json::nlohmann_json
-    ws2_32
-    wsock32
+    $<$<PLATFORM_ID:Windows>:ws2_32>
+    $<$<PLATFORM_ID:Windows>:wsock32>
 )
 
 target_compile_definitions(AtlasHttp INTERFACE
-    _WIN32_WINNT=0x0A00
-    BOOST_LOG_DYN_LINK
+    $<$<PLATFORM_ID:Windows>:_WIN32_WINNT=0x0A00>
+    $<$<PLATFORM_ID:Windows>:BOOST_LOG_DYN_LINK>
 )
 
 add_subdirectory(example)

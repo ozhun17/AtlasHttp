@@ -21,7 +21,7 @@ jobs:
             triplet: x64-osx
             compiler: clang
           - os: windows-latest
-            triplet: x64-windows-dynamic
+            triplet: x64-windows
             compiler: msvc
 
     steps:
