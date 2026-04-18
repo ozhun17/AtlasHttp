@@ -5,7 +5,6 @@
     "boost-asio",
     "boost-beast",
     "boost-log",
-    "boost-log-setup",
     "boost-program-options",
     "boost-regex",
     "boost-filesystem",
