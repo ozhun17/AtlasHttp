@@ -41,6 +41,7 @@ jobs:
       uses: lukka/run-vcpkg@v11
       with:
         vcpkgGitCommitId: '256acc64012b23a13041d8705805e1f23b43a024'
+        vcpkgDirectory: ${{ github.workspace }}/vcpkg_cache
 
     - name: Install latest CMake
       run: |
@@ -70,7 +71,7 @@ jobs:
     - name: Start server and test /ready endpoint
       run: |
         # Start the server in background
-        $process = Start-Process -FilePath ".\build\example\AtlasHttpExample.exe" -PassThru
+        $process = Start-Process -FilePath ".\build\example\Debug\AtlasHttpExample.exe" -PassThru
         $pid = $process.Id
         
         # Give server time to start
