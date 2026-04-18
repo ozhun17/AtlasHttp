@@ -36,7 +36,7 @@ add_executable(AtlasHttp
         Include/HttpServer.h
         Include/MetricManager.h
         Include/Namespace.h
-        Include/AsyncReaderWriter.h
+        Include/AsyncRequestProcessor.h
         Include/ConnectionContext.h
         Include/AsyncMethodResponder.h
         Include/AsyncReader.h

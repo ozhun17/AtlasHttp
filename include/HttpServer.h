@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include "AsyncReaderWriter.h"
+#include "AsyncRequestProcessor.h"
 #include "Namespace.h"
 
 AtlasHttpNamespaceBegin
@@ -45,6 +45,10 @@ public:
     }
     void StartAccept()
     {
+        if(_shouldStop)
+        {
+            return;
+        }
         Logger(Verbose) << "Http Server Accepting Connections...";
         _acceptor->async_accept(
             boost::asio::make_strand(_ioContext),
@@ -55,7 +59,7 @@ public:
                     Logger(Verbose) << "Http Server Accepted Connection. remote_id = " << socket.remote_endpoint().address();;
                     auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
                     auto strand = boost::asio::make_strand(_ioContext);
-                    const auto sharedResponder = std::make_shared<AsyncReaderWriter>(std::move(socketPtr), strand, _requestHandlers);
+                    const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(socketPtr), strand, _requestHandlers);
                     sharedResponder->StartAsyncRead();
                 }
                 StartAccept();
@@ -73,8 +77,9 @@ public:
     }
 
 
-    void Stop() const
+    void Stop()
     {
+        _shouldStop = true;
         // Close the acceptor first to unblock any blocking accept() call
         try
         {
@@ -95,6 +100,7 @@ public:
     }
 
 private:
+    bool _shouldStop = false;
     std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> _requestHandlers;
     boost::asio::io_context & _ioContext;
     std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;

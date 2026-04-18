@@ -7,9 +7,9 @@
 #include "Namespace.h"
 AtlasHttpNamespaceBegin
 
-struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>, AsyncReader
+struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcessor>, AsyncReader
 {
-    AsyncReaderWriter(
+    AsyncRequestProcessor(
         std::unique_ptr<boost::asio::ip::tcp::socket> socket,
         boost::asio::any_io_executor strand,
         const std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> & requestHandlers
@@ -21,7 +21,7 @@ struct AsyncReaderWriter : std::enable_shared_from_this<AsyncReaderWriter>, Asyn
     void StartAsyncRead() {
         AsyncReadNextRequest();
     }
-    ~AsyncReaderWriter() override
+    ~AsyncRequestProcessor() override
     {
         Logger(Verbose) << "Closing Async ReaderWriter";
     }

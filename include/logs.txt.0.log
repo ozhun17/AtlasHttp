@@ -1,0 +1,18 @@
+[2026-Apr-18 14:10:04.242959] [0x00002b68] <INFO>: Hello and welcome to Atlas Http
+[2026-Apr-18 14:10:04.245192] [0x00002b68] <TRACE>: Http Server Accepting Connections...
+[2026-Apr-18 14:10:06.537351] [0x00004a64] <TRACE>: Http Server Accepted Connection. remote_id = 127.0.0.1
+[2026-Apr-18 14:10:06.538019] [0x00004a64] <TRACE>: Http Server Accepting Connections...
+[2026-Apr-18 14:10:06.538360] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:06.538893] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:09.077588] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:09.078567] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:10.307320] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:10.307758] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:12.564661] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:12.565101] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:14.781754] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:14.782241] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:21.938385] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:28.211148] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1
+[2026-Apr-18 14:10:36.708387] [0x00004a64] <TRACE>: Http Server read some from connection: 127.0.0.1
+[2026-Apr-18 14:10:59.522339] [0x00004a64] <TRACE>: Http Server wrote async for connection: 127.0.0.1

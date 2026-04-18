@@ -24,13 +24,14 @@ struct EndpointPopulator
             json["FinishedHttpConnections"] = MetricManager::The()._finishedHttpConnections.load();
             json["HttpRequests"] = MetricManager::The()._httpRequests.load();
             json["HttpResponses"] = MetricManager::The()._httpResponses.load();
-            auto sharedReader = responder->_weakReader.lock();
-            if(!sharedReader)
+            auto liveKeeper = responder->GetAliveKeeper();
+            if(!liveKeeper.IsAlive())
             {
                 return;
             }
-            boost::asio::post(responder->_connectionContext._strand, [sharedReader, responder = std::shared_ptr<AsyncMethodResponder>(responder), json = std::move(json)]() mutable
+            boost::asio::post(responder->_connectionContext._strand, [liveKeeper, json = std::move(json)]() mutable
             {
+                auto responder = liveKeeper._responder; 
                 responder->_connectionContext._response->result(boost::beast::http::status::ok);
                 responder->_connectionContext._response->set(boost::beast::http::field::content_type, "application/json");
                 responder->_connectionContext._response->set(boost::beast::http::field::keep_alive, "false");

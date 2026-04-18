@@ -2,6 +2,7 @@
 #define ATLASHTTP_ASYNCMETHODRESPONDER_H
 #include <memory>
 #include <functional>
+#include <Logger.h>
 #include "AsyncReader.h"
 #include "ConnectionContext.h"
 #include "Namespace.h"
@@ -10,6 +11,27 @@ AtlasHttpNamespaceBegin
 
 struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
 {
+    struct MethodAliveKeeper
+    {
+        std::shared_ptr<AsyncReader> _reader;
+        std::shared_ptr<AsyncMethodResponder> _responder;
+        MethodAliveKeeper(std::shared_ptr<AsyncMethodResponder> responder)
+            : 
+            _reader(responder->_weakReader.lock()),
+            _responder(std::move(responder))
+        {
+        }
+        bool IsAlive() const
+        {
+            return _responder != nullptr && _reader != nullptr;
+        }
+        void Reset()
+        {
+            _responder.reset();
+            _reader.reset();
+        }
+    };
+
     AsyncMethodResponder
     (
         std::weak_ptr<AsyncReader> weakReader,
@@ -22,6 +44,12 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
         _requestHandler(std::move(requestHandler))
     {
     }
+
+    MethodAliveKeeper GetAliveKeeper()
+    {
+        return MethodAliveKeeper(shared_from_this());
+    }
+
 
     void RespondAsync()
     {
