@@ -50,7 +50,7 @@ jobs:
     - name: Configure CMake (Linux/macOS)
       if: matrix.os != 'windows-latest'
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Debug \
+        cmake -B build -DCMAKE_BUILD_TYPE=MinSizeRel \
           -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
       shell: bash
@@ -58,19 +58,19 @@ jobs:
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Debug `
+        cmake -B build -DCMAKE_BUILD_TYPE=MinSizeRel `
           -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
       shell: pwsh
 
     - name: Build
-      run: cmake --build build --config Debug
+      run: cmake --build build --config MinSizeRel
       shell: pwsh
 
     - name: Start server and test /ready endpoint
       run: |
         # Start the server in background
-        $process = Start-Process -FilePath ".\build\example\Debug\AtlasHttpExample.exe" -PassThru
+        $process = Start-Process -FilePath ".\build\example\MinSizeRel\AtlasHttpExample.exe" -PassThru
         $processId = $process.Id
         
         # Give server time to start
