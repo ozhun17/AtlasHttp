@@ -35,6 +35,11 @@ jobs:
       with:
         vcpkgGitCommitId: '256acc64012b23a13041d8705805e1f23b43a024'
 
+    - name: Install latest CMake
+      run: |
+        pip install --upgrade cmake
+      shell: bash
+
     - name: Configure CMake
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=Debug `
