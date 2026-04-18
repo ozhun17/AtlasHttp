@@ -34,8 +34,8 @@ include_directories(external/atlas-logger/include)
 add_library(AtlasHttp INTERFACE)
 
 target_include_directories(AtlasHttp INTERFACE
-    include/
-    external/atlas-logger/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/atlas-logger/include
 )
 
 target_link_libraries(AtlasHttp INTERFACE
