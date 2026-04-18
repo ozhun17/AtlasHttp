@@ -34,7 +34,6 @@ jobs:
       uses: lukka/run-vcpkg@v10
       with:
         vcpkgDirectory: ${{ runner.workspace }}/vcpkg
-        vcpkgGitCommitId: '01f602195983451bc12c2126682e5f907d89d206'
         appendedCacheKey: ${{ matrix.triplet }}
         additionalCachedPaths: ${{ runner.workspace }}/build/vcpkg_installed
 
