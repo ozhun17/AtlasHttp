@@ -7,9 +7,9 @@
 #include <thread>
 #include <Logger.h>
 #include <boost/asio.hpp>
-#include "include/HttpServer.h"
-#include "include/Namespace.h"
-#include "example/EndpointPopulator.h"
+#include "../include/HttpServer.h"
+#include "../include/Namespace.h"
+#include "EndpointPopulator.h"
 
 UsingAtlasNamespace
 UsingAtlasHttpNamespace

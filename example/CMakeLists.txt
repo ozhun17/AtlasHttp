@@ -1,0 +1,3 @@
+add_executable(AtlasHttpExample main.cpp)
+
+target_link_libraries(AtlasHttpExample AtlasHttp)

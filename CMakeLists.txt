@@ -31,30 +31,31 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_subdirectory(external/atlas-logger)
 include_directories(external/atlas-logger/include)
 
-add_executable(AtlasHttp
-        main.cpp
-        Include/HttpServer.h
-        Include/MetricManager.h
-        Include/Namespace.h
-        Include/AsyncRequestProcessor.h
-        Include/ConnectionContext.h
-        Include/AsyncMethodResponder.h
-        Include/AsyncReader.h
+add_library(AtlasHttp INTERFACE)
+
+target_include_directories(AtlasHttp INTERFACE
+    include/
+    external/atlas-logger/include
 )
 
-target_link_libraries(AtlasHttp
-        AtlasLogger
-        Boost::log
-        Boost::log_setup
-        Boost::program_options
-        Boost::regex
-        Boost::filesystem
-        Boost::thread
-        ws2_32
-        wsock32
+target_link_libraries(AtlasHttp INTERFACE
+    AtlasLogger
+    Boost::log
+    Boost::log_setup
+    Boost::program_options
+    Boost::beast
+    Boost::regex
+    Boost::filesystem
+    Boost::thread
+    Boost::system
+    nlohmann_json::nlohmann_json
+    ws2_32
+    wsock32
 )
 
-target_compile_definitions(AtlasHttp PRIVATE
-        _WIN32_WINNT=0x0A00
-        BOOST_LOG_DYN_LINK
+target_compile_definitions(AtlasHttp INTERFACE
+    _WIN32_WINNT=0x0A00
+    BOOST_LOG_DYN_LINK
 )
+
+add_subdirectory(example)
