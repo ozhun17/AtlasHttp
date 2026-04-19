@@ -13,8 +13,6 @@ endif()
 
 if(MSVC)
     add_compile_options(/bigobj)
-else()
-    add_compile_options(-Wa,-mbig-obj)
 endif()
 
 
