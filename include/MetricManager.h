@@ -22,6 +22,8 @@ struct MetricManager
     std::atomic<int> _finishedHttpConnections = 0;
     std::atomic<int> _httpResponses = 0;
     std::atomic<int> _httpRequests = 0;
+    std::atomic<int> _currentWebsocketSessions = 0;
+    std::atomic<int> _closedWebsocketSessions = 0;
 };
 
 AtlasHttpNamespaceEnd

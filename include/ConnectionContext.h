@@ -27,6 +27,7 @@ struct ConnectionContext
         _strand(std::move(strand))
     {
         ++MetricManager::The()._currentHttpConnections;
+		Logger(Verbose) << "Constructing ConnectionContext PlainSocket";
         _response->set(boost::beast::http::field::server, "AtlasHttpServer");
     }
 
@@ -38,11 +39,13 @@ struct ConnectionContext
         _strand(std::move(strand))
     {
         ++MetricManager::The()._currentHttpConnections;
+        Logger(Verbose) << "Constructing ConnectionContext SslSocket";
         _response->set(boost::beast::http::field::server, "AtlasHttpServer");
     }
 
     ~ConnectionContext()
     {
+        Logger(Verbose) << "Destructing ConnectionContext";
         --MetricManager::The()._currentHttpConnections;
         ++MetricManager::The()._finishedHttpConnections;
     }
@@ -77,21 +80,35 @@ struct ConnectionContext
     template<class Request, class CompletionToken>
     void AsyncRead(boost::beast::flat_buffer& buffer, Request& request, CompletionToken&& token)
     {
-        auto handler = std::forward<CompletionToken>(token);
-        std::visit([&](auto& streamPtr) mutable
+        if (auto plainPtr = std::get_if<std::shared_ptr<PlainSocket>>(&_stream))
         {
-            boost::beast::http::async_read(*streamPtr, buffer, request, std::move(handler));
-        }, _stream);
+            boost::beast::http::async_read(
+                **plainPtr, buffer, request, 
+                std::forward<CompletionToken>(token));
+        }
+        else if (auto sslPtr = std::get_if<std::shared_ptr<SslSocket>>(&_stream))
+        {
+            boost::beast::http::async_read(
+                **sslPtr, buffer, request,
+                std::forward<CompletionToken>(token));
+        }
     }
 
     template<class Response, class CompletionToken>
     void AsyncWrite(Response& response, CompletionToken&& token)
     {
-        auto handler = std::forward<CompletionToken>(token);
-        std::visit([&](auto& streamPtr) mutable
+        if (auto plainPtr = std::get_if<std::shared_ptr<PlainSocket>>(&_stream))
         {
-            boost::beast::http::async_write(*streamPtr, response, std::move(handler));
-        }, _stream);
+            boost::beast::http::async_write(
+                **plainPtr, response, 
+                std::forward<CompletionToken>(token));
+        }
+        else if (auto sslPtr = std::get_if<std::shared_ptr<SslSocket>>(&_stream))
+        {
+            boost::beast::http::async_write(
+                **sslPtr, response,
+                std::forward<CompletionToken>(token));
+        }
     }
 
     template<class HandshakeHandler>

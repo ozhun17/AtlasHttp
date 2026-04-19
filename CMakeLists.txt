@@ -11,6 +11,14 @@ if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
 endif()
 
+if(MSVC)
+    add_compile_options(/bigobj)
+else()
+    add_compile_options(-Wa,-mbig-obj)
+endif()
+
+
+
 #   -DCMAKE_TOOLCHAIN_FILE=<vcpkg_root>/scripts/buildsystems/vcpkg.cmake
 #   -DVCPKG_TARGET_TRIPLET=x64-windows or x64-windows-static
 

@@ -16,6 +16,7 @@
 #include <boost/asio/ssl.hpp>
 #include "AsyncRequestProcessor.h"
 #include "Namespace.h"
+#include "WebSocketSession.h"
 
 AtlasHttpNamespaceBegin
 
@@ -74,15 +75,15 @@ public:
                     if (_useHttps)
                     {
                         auto sslStream = std::make_unique<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>(std::move(socket), *_sslContext);
-                        ConnectionContext connection(std::move(sslStream), strand);
-                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers);
+                        auto connection = std::make_shared<ConnectionContext>(std::move(sslStream), strand);
+                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers, _websocketHandlers);
                         sharedResponder->StartAsyncRead();
                     }
                     else
                     {
                         auto socketPtr = std::make_unique<boost::asio::ip::tcp::socket>(std::move(socket));
-                        ConnectionContext connection(std::move(socketPtr), strand);
-                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers);
+                        auto connection = std::make_shared<ConnectionContext>(std::move(socketPtr), strand);
+                        const auto sharedResponder = std::make_shared<AsyncRequestProcessor>(std::move(connection), _requestHandlers, _websocketHandlers);
                         sharedResponder->StartAsyncRead();
                     }
                 }
@@ -98,6 +99,11 @@ public:
     {
         auto & methods = _requestHandlers[target];
         methods.emplace(verb, std::move(handler));
+    }
+
+    void AddWebSocketHandler(const std::string& target, const WebSocketSession::WebSocketHandlers& handlers)
+    {
+        _websocketHandlers.emplace(target, handlers);
     }
 
     
@@ -146,6 +152,7 @@ private:
     bool _shouldStop = false;
     std::unique_ptr<boost::asio::ssl::context> _sslContext;
     std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> _requestHandlers;
+    std::unordered_map<std::string, WebSocketSession::WebSocketHandlers> _websocketHandlers;
     boost::asio::io_context & _ioContext;
     std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 };
