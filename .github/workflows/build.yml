@@ -19,7 +19,7 @@ jobs:
           - os: macos-latest
             triplet: arm64-osx
             compiler: clang
-          - os: windows-latest
+          - runner: [self-hosted, windows]
             triplet: x64-windows
             compiler: msvc
 
