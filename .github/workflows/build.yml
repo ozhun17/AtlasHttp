@@ -8,13 +8,12 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          - os: ubuntu-latest
+          - runner: [self-hosted, linux]
             triplet: x64-linux
             compiler: gcc
           - os: macos-latest
