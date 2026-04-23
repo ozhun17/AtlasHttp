@@ -1,3 +1,3 @@
-[submodule "example/external/atlas-logger"]
-	path = example/external/atlas-logger
+[submodule "external/atlas-logger"]
+	path = external/atlas-logger
 	url = https://github.com/ozhun17/AtlasLogger.git
