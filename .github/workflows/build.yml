@@ -59,9 +59,15 @@ jobs:
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
       shell: pwsh
 
-    - name: Build
+    - name: Build (Windows)
+      if: matrix.os == 'windows-latest'
       run: cmake --build build --config MinSizeRel
       shell: pwsh
+
+    - name: Build (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: cmake --build build --config MinSizeRel
+      shell: bash
 
     - name: Start server and test /ready endpoint
       run: |
