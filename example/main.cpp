@@ -26,7 +26,34 @@ int main()
     Atlas::LogManager::Init(conf);
     Logger(Info) << "Hello and welcome to Atlas Http";
     boost::asio::io_context context;
-    auto server = HTTPServer(context);
+    auto onLog = [](HttpServerLogLevel level, const std::string& message)
+    {
+        switch (level)
+        {
+        case HttpServerLogLevel::Verbose:
+            Logger(Verbose) << message;
+            break;
+        case HttpServerLogLevel::Debug:
+            Logger(Debug) << message;
+            break;
+        case HttpServerLogLevel::Info:
+            Logger(Info) << message;
+            break;
+        case HttpServerLogLevel::Warning:
+            Logger(Warning) << message;
+            break;
+        case HttpServerLogLevel::Error:
+            Logger(Error) << message;
+            break;
+        case HttpServerLogLevel::Critical:
+            Logger(Fatal) << message;
+            break;
+        default:
+            Logger(Info) << message;
+            break;
+        }
+		};
+    auto server = HTTPServer(context, onLog);
     EndpointPopulator{}(server);
     constexpr bool useHttps = false;
     const auto certificateFile = "certfile.pem";

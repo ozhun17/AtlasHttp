@@ -9,6 +9,7 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include "HttpLogs.h"
 #include "MetricManager.h"
 #include "Namespace.h"
 AtlasHttpNamespaceBegin
@@ -20,32 +21,38 @@ struct ConnectionContext
     using StreamVariant = std::variant<std::shared_ptr<PlainSocket>, std::shared_ptr<SslSocket>>;
 
     ConnectionContext(
+        std::function<void(HttpServerLogLevel, const std::string &)> onLog,
         std::shared_ptr<PlainSocket> socket,
         boost::asio::any_io_executor strand
     )
-        : _stream(std::move(socket)),
+        : 
+		_onLog(std::move(onLog)),
+        _stream(std::move(socket)),
         _strand(std::move(strand))
     {
         ++MetricManager::The()._currentHttpConnections;
-		Logger(Verbose) << "Constructing ConnectionContext PlainSocket";
+        Log(HttpServerLogLevel::Verbose, "Constructing ConnectionContext PlainSocket");
         _response->set(boost::beast::http::field::server, "AtlasHttpServer");
     }
 
     ConnectionContext(
+        std::function<void(HttpServerLogLevel, const std::string&)> onLog,
         std::shared_ptr<SslSocket> sslStream,
         boost::asio::any_io_executor strand
     )
-        : _stream(std::move(sslStream)),
+        :
+		_onLog(std::move(onLog)),
+        _stream(std::move(sslStream)),
         _strand(std::move(strand))
     {
         ++MetricManager::The()._currentHttpConnections;
-        Logger(Verbose) << "Constructing ConnectionContext SslSocket";
+        Log(HttpServerLogLevel::Verbose, "Constructing ConnectionContext SslSocket");
         _response->set(boost::beast::http::field::server, "AtlasHttpServer");
     }
 
     ~ConnectionContext()
     {
-        Logger(Verbose) << "Destructing ConnectionContext";
+        Log(HttpServerLogLevel::Verbose, "Destructing ConnectionContext");
         --MetricManager::The()._currentHttpConnections;
         ++MetricManager::The()._finishedHttpConnections;
     }
@@ -163,7 +170,14 @@ struct ConnectionContext
             }
         }, _stream);
     }
-
+	void Log(HttpServerLogLevel level, const std::string& message)
+    {
+        if (_onLog)
+        {
+            _onLog(level, message);
+        }
+    }
+	std::function<void(HttpServerLogLevel, const std::string&)> _onLog;
     StreamVariant _stream;
     boost::asio::any_io_executor _strand;
     boost::beast::http::request<boost::beast::http::string_body> _request;

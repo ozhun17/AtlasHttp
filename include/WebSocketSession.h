@@ -6,7 +6,6 @@
 #include <string>
 #include <deque>
 #include <variant>
-#include <Logger.h>
 #include <boost/beast/websocket.hpp>
 #include "ConnectionContext.h"
 #include "MetricManager.h"

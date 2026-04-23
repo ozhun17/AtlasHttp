@@ -2,9 +2,9 @@
 #define ATLASHTTP_ASYNCMETHODRESPONDER_H
 #include <memory>
 #include <functional>
-#include <Logger.h>
 #include "AsyncReader.h"
 #include "ConnectionContext.h"
+#include "HttpLogs.h"
 #include "Namespace.h"
 #include "MetricManager.h"
 AtlasHttpNamespaceBegin
@@ -34,11 +34,13 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
 
     AsyncMethodResponder
     (
+        std::function<void(HttpServerLogLevel, const std::string&)> onLog,
         std::weak_ptr<AsyncReader> weakReader,
         std::weak_ptr<ConnectionContext> connectionContext,
         std::function<void(std::shared_ptr<AsyncMethodResponder>)> requestHandler
         )
         :
+		_onLog(std::move(onLog)),
         _weakReader(std::move(weakReader)),
         _connectionContext(connectionContext),
         _requestHandler(std::move(requestHandler))
@@ -80,7 +82,7 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
             *sharedConnectionContext->_response,
             boost::asio::bind_executor(
                 sharedConnectionContext->_strand,
-                [weakConnectionContext = _connectionContext, sharedReader](const boost::system::error_code& ec, std::size_t)
+                [weakConnectionContext = _connectionContext, sharedReader, onLog = _onLog](const boost::system::error_code& ec, std::size_t)
                 {
                     ++MetricManager::The()._httpResponses;
 					auto sharedConnectionContext = weakConnectionContext.lock();
@@ -94,12 +96,18 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
                         sharedConnectionContext->ShutdownBoth(ec2);
                         if (ec2)
                         {
-                            Logger(Error) << "Connection Teardown! " << ec2.message();
+                            if (onLog)
+                            {
+                                onLog(HttpServerLogLevel::Error, "Connection Teardown! " + ec2.message());
+                            }
                         }
                         sharedReader->AsyncReadNextRequest();
                         return;
                     }
-                    Logger(Verbose) << "Http Server wrote async for connection: " << sharedConnectionContext->RemoteEndpoint().address();
+                    if (onLog)
+                    {
+                        onLog(HttpServerLogLevel::Verbose, "Http Server wrote async for connection: " + sharedConnectionContext->RemoteEndpoint().address().to_string());
+                    }
 
                     if (!(sharedConnectionContext->_response->keep_alive()))
                     {
@@ -107,7 +115,10 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
                         sharedConnectionContext->ShutdownSend(ec2);
                         if (ec2)
                         {
-                            Logger(Error) << "Connection Teardown! " << ec2.message();
+                            if (onLog)
+                            {
+                                onLog(HttpServerLogLevel::Error, "Connection Teardown! " + ec2.message());
+                            }
                         }
                         sharedReader->AsyncReadNextRequest();
                         return;
@@ -116,6 +127,14 @@ struct AsyncMethodResponder: std::enable_shared_from_this<AsyncMethodResponder>
                 }
             ));
     }
+    void Log(HttpServerLogLevel level, const std::string& message)
+    {
+        if (_onLog)
+        {
+            _onLog(level, message);
+        }
+	}
+	std::function<void(HttpServerLogLevel, const std::string&)> _onLog;
     std::function<void(std::shared_ptr<AsyncMethodResponder>)> _requestHandler;
     std::weak_ptr<AsyncReader> _weakReader;
     std::weak_ptr<ConnectionContext> _connectionContext;

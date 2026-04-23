@@ -5,17 +5,20 @@
 #include "AsyncMethodResponder.h"
 #include "AsyncReader.h"
 #include "MetricManager.h"
+#include "HttpLogs.h"
 #include "Namespace.h"
 AtlasHttpNamespaceBegin
 
 struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcessor>, AsyncReader
 {
     AsyncRequestProcessor(
+		std::function<void(HttpServerLogLevel, std::string)> onLog,
         std::shared_ptr<ConnectionContext> connectionContext,
         const std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> & requestHandlers,
         const std::unordered_map<std::string, WebSocketSession::WebSocketHandlers> & websocketHandlers
     )
         : 
+		_onLog(std::move(onLog)),
         _connectionContext(std::move(connectionContext)), 
         _requestHandlers(requestHandlers)
     {
@@ -37,7 +40,7 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
                         }
                         else
                         {
-                            Logger(Error) << "HTTPS handshake failed: " << ec.message();
+							self->Log(HttpServerLogLevel::Error, "HTTPS handshake failed: " + ec.message());
                         }
                     }));
             return;
@@ -47,7 +50,7 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
     }
     ~AsyncRequestProcessor() override
     {
-        Logger(Verbose) << "Closing Async ReaderWriter";
+        Log(HttpServerLogLevel::Verbose, "Closing Async ReaderWriter");
     }
 
     void Process()
@@ -97,7 +100,7 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
         };
         if(!_requestHandlers.contains(std::string(_connectionContext->_request.target())))
         {
-            auto asyncResponder = std::make_shared<AsyncMethodResponder>(weak_from_this(), std::weak_ptr(_connectionContext), notFoundResponder);
+            auto asyncResponder = std::make_shared<AsyncMethodResponder>(_onLog, weak_from_this(), std::weak_ptr(_connectionContext), notFoundResponder);
             asyncResponder->RespondAsync();
             return;
         }
@@ -114,11 +117,11 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
         };
         if(!_requestHandlers.at(std::string(_connectionContext->_request.target())).contains(_connectionContext->_request.method()))
         {
-            auto asyncResponder = std::make_shared<AsyncMethodResponder>(weak_from_this(), std::weak_ptr(_connectionContext), notAllowedResponder);
+            auto asyncResponder = std::make_shared<AsyncMethodResponder>(_onLog, weak_from_this(), std::weak_ptr(_connectionContext), notAllowedResponder);
             asyncResponder->RespondAsync();
             return;
         }
-        const auto asyncResponder = std::make_shared<AsyncMethodResponder>(weak_from_this(), std::weak_ptr(_connectionContext), _requestHandlers.at(std::string(_connectionContext->_request.target())).at(_connectionContext->_request.method()));
+        const auto asyncResponder = std::make_shared<AsyncMethodResponder>(_onLog, weak_from_this(), std::weak_ptr(_connectionContext), _requestHandlers.at(std::string(_connectionContext->_request.target())).at(_connectionContext->_request.method()));
         asyncResponder->RespondAsync();
     }
 
@@ -136,16 +139,24 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
                 {
                     if (!ec)
                     {
-                        Logger(Verbose) << "Http Server read some from connection: " << self->_connectionContext->RemoteEndpoint().address();
+						self->Log(HttpServerLogLevel::Verbose, "Successfully read from connection: " + self->_connectionContext->RemoteEndpoint().address().to_string());
                         self->_connectionContext->_version = self->_connectionContext->_request.version();
                         ++MetricManager::The()._httpRequests;
                         self->Process();
                     }
                     else {
-                        Logger(Verbose) << "Http server couldn't read next for connection: " << self->_connectionContext->RemoteEndpoint().address();
+                        self->Log(HttpServerLogLevel::Verbose, "Http server couldn't read next for connection: " + self->_connectionContext->RemoteEndpoint().address().to_string());
                     }
                 }));
     }
+    void Log(HttpServerLogLevel level, const std::string& message)
+    {
+        if (_onLog)
+        {
+            _onLog(level, message);
+        }
+	}
+	std::function<void(HttpServerLogLevel, std::string)> _onLog;
     const std::unordered_map<std::string, std::unordered_map<boost::beast::http::verb, std::function<void(const std::shared_ptr<AsyncMethodResponder>&)>>> & _requestHandlers;
     const std::unordered_map<std::string, WebSocketSession::WebSocketHandlers>* _websocketHandlers = nullptr;
     std::shared_ptr<ConnectionContext> _connectionContext;
