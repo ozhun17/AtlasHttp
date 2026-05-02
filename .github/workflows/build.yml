@@ -28,12 +28,6 @@ jobs:
         submodules: recursive
         token: ${{ secrets.PAT_TOKEN }}
 
-    - name: Setup vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgGitCommitId: '256acc64012b23a13041d8705805e1f23b43a024'
-
-
     - name: Configure CMake (Linux/macOS)
       if: matrix.os != 'windows-latest'
       run: |
@@ -46,7 +40,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         cmake -B build -DBUILD_EXAMPLES=ON -DCMAKE_BUILD_TYPE=MinSizeRel `
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" `
+          -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
       shell: pwsh
 
