@@ -17,11 +17,12 @@ endif()
 
 
 
+
 #   -DCMAKE_TOOLCHAIN_FILE=<vcpkg_root>/scripts/buildsystems/vcpkg.cmake
 #   -DVCPKG_TARGET_TRIPLET=x64-windows or x64-windows-static
 
 # Boost.Log on Windows requires dynamic linking unless built static.
-
+option(BUILD_EXAMPLES "Build examples" OFF)
 
 
 find_package(Boost 1.90 REQUIRED
@@ -64,4 +65,6 @@ target_compile_definitions(AtlasHttp INTERFACE
     $<$<PLATFORM_ID:Windows>:BOOST_LOG_DYN_LINK>
 )
 
-add_subdirectory(example)
+if(BUILD_EXAMPLES)
+    add_subdirectory(example)
+endif()

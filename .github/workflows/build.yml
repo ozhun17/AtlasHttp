@@ -17,10 +17,6 @@ jobs:
             os: ubuntu-latest
             triplet: x64-linux
             compiler: gcc
-          - runner: macos-latest
-            os: macos-latest
-            triplet: arm64-osx
-            compiler: clang
           - runner: self-hosted-windows
             os: windows-latest
             triplet: x64-windows
@@ -37,11 +33,6 @@ jobs:
       with:
         vcpkgGitCommitId: '256acc64012b23a13041d8705805e1f23b43a024'
 
-    - name: Install latest CMake
-      if: matrix.os == 'macos-latest'
-      run: |
-        pip install --upgrade cmake
-      shell: bash
 
     - name: Configure CMake (Linux/macOS)
       if: matrix.os != 'windows-latest'

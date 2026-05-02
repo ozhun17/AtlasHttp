@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <thread>
-#include <Logger.h>
+#include "external/atlas-logger/include/Logger.h"
 #include <boost/asio.hpp>
 #include "../include/HttpServer.h"
 #include "../include/Namespace.h"

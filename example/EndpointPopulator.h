@@ -9,6 +9,7 @@ struct EndpointPopulator
     {
         auto readinessResponder = [](const std::shared_ptr<AsyncMethodResponder> & responder)
         {
+				responder->_connectionContext.lock()->_response->set(boost::beast::http::field::access_control_allow_origin, "http://localhost:5500");
             nlohmann::json json;
             json["status"] = "ok";
             responder->_connectionContext.lock()->_response->result(boost::beast::http::status::ok);
