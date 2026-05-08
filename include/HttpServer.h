@@ -115,7 +115,7 @@ public:
 
     void AddWebSocketHandler(const std::string& target, const WebSocketSession::WebSocketHandlers& handlers)
     {
-        _websocketHandlers.emplace(target, _onLog, handlers);
+        _websocketHandlers.emplace(target, handlers);
     }
 
     

@@ -63,7 +63,7 @@ struct AsyncRequestProcessor : std::enable_shared_from_this<AsyncRequestProcesso
             if (_websocketHandlers && _websocketHandlers->contains(path))
             {
                 // Move ownership of connection into a websocket session
-                auto session = std::make_shared<WebSocketSession>(std::move(_connectionContext));
+                auto session = std::make_shared<WebSocketSession>(std::move(_connectionContext), _onLog);
                 const auto& handlers = _websocketHandlers->at(path);
 
                 if (handlers.onConnect)
