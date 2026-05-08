@@ -9,6 +9,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
     set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+    # For the main fuzzer target:
+    add_compile_options(/fsanitize=fuzzer)
+    add_compile_options(/fsanitize=address)
+
+    # For libraries (mimics fuzzer-no-link):
+    add_compile_options(/fsanitize-coverage=edge)
+    add_compile_options(/fsanitize-coverage=inline-8bit-counters)
+    add_compile_options(/fsanitize-coverage=trace-cmp)
+    add_compile_options(/fsanitize-coverage=trace-div)
+    add_compile_options(/fsanitize=address)
 endif()
 
 if(MSVC)
