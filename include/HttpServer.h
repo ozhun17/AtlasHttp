@@ -61,7 +61,6 @@ public:
 
         Log(HttpServerLogLevel::Info, (_useHttps ? "HTTPS" : "HTTP") + std::string(" Server initializing at ") + address + ":" + port);   
         
-        // create and open the acceptor on the server io_context
         _acceptor = std::make_unique<boost::asio::ip::tcp::acceptor>(_ioContext);
         _acceptor->open(endpoint.protocol());
         _acceptor->set_option(boost::asio::socket_base::reuse_address(true));
@@ -116,20 +115,19 @@ public:
 
     void AddWebSocketHandler(const std::string& target, const WebSocketSession::WebSocketHandlers& handlers)
     {
-        _websocketHandlers.emplace(target, handlers);
+        _websocketHandlers.emplace(target, _onLog, handlers);
     }
 
     
     void Stop()
     {
         _shouldStop = true;
-        // Close the acceptor first to unblock any blocking accept() call
         try
         {
             if (_acceptor && _acceptor->is_open())
             {
                 boost::system::error_code ec;
-                (void)_acceptor->close(ec); // NOLINT(*-unused-return-value)
+                (void)_acceptor->close(ec);
                 if (ec)
                 {
                     Log(HttpServerLogLevel::Error, "Error closing acceptor: " + ec.message());

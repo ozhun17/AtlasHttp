@@ -15,17 +15,21 @@ AtlasHttpNamespaceBegin
 
 struct WebSocketSession : public std::enable_shared_from_this<WebSocketSession>
 {
-    WebSocketSession(std::shared_ptr<ConnectionContext> connectionContext)
-		: _connectionContext(std::move(connectionContext))
+    WebSocketSession(
+        std::shared_ptr<ConnectionContext> connectionContext,
+        std::function<void(HttpServerLogLevel, std::string)> onLog
+    )
+		: _connectionContext(std::move(connectionContext)),
+        _onLog(std::move(onLog))
 
     {
-        Logger(Verbose) << "Constructing WebSocketSession";
+        Log(HttpServerLogLevel::Verbose, "Constructing WebSocketSession");
 		MetricManager::The()._currentWebsocketSessions++;
     }
 
     ~WebSocketSession()
     {
-		Logger(Verbose) << "Destructing WebSocketSession";
+		Log(HttpServerLogLevel::Verbose, "Destructing WebSocketSession");
         MetricManager::The()._currentWebsocketSessions--;
         MetricManager::The()._closedWebsocketSessions++;
     }
@@ -89,7 +93,7 @@ struct WebSocketSession : public std::enable_shared_from_this<WebSocketSession>
     {
         if (_connectionContext->IsSecure())
         {
-            Logger(Error) << "WebSocket over TLS/SSL is not supported by this minimal implementation.";
+            Log(HttpServerLogLevel::Error, "WebSocket over TLS/SSL is not supported by this minimal implementation.");
             return;
         }
         // Create websocket stream from underlying plain tcp socket
@@ -103,7 +107,7 @@ struct WebSocketSession : public std::enable_shared_from_this<WebSocketSession>
         {
             if (ec)
             {
-                Logger(Error) << "WebSocket accept failed: " << ec.message();
+                Log(HttpServerLogLevel::Error, "WebSocket accept failed: " + ec.message());
                 return;
             }
             if (_onClientConnected)
@@ -168,7 +172,7 @@ private:
             {
                 if (ec)
                 {
-                    Logger(Verbose) << "WebSocket read error: " << ec.message();
+                    Log(HttpServerLogLevel::Verbose, "WebSocket read error: " + ec.message());
                     if (_onDisconnect)
                     {
                         _connected = false;
@@ -211,10 +215,10 @@ private:
                 {
                     if(!_connected)
                     {
-						Logger(Info) << "Couldn't write since websocket disconnected: " << ec.message();
+						Log(HttpServerLogLevel::Info, "Couldn't write since websocket disconnected: " + ec.message());
                         return;
                     }
-                    Logger(Error) << "WebSocket write error: " << ec.message();
+                    Log(HttpServerLogLevel::Error, "WebSocket write error: " + ec.message());
                     return;
                 }
                 _sendQueue.pop_front();
@@ -225,6 +229,15 @@ private:
             }
         ));
     }
+
+    void Log(HttpServerLogLevel level, const std::string& message)
+    {
+        if (_onLog)
+        {
+            _onLog(level, message);
+        }
+    }
+
 
     std::shared_ptr<ConnectionContext> _connectionContext;
     OnClientConnectedHandler _onClientConnected;
@@ -237,6 +250,8 @@ private:
     // websocket stream for plain TCP
     using PlainWs = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
     std::shared_ptr<PlainWs> _wsStream;
+    std::function<void(HttpServerLogLevel, std::string)> _onLog;
+
 };
 
 AtlasHttpNamespaceEnd

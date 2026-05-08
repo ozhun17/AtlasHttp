@@ -9,13 +9,14 @@ struct EndpointPopulator
     {
         auto readinessResponder = [](const std::shared_ptr<AsyncMethodResponder> & responder)
         {
-				responder->_connectionContext.lock()->_response->set(boost::beast::http::field::access_control_allow_origin, "http://localhost:5500");
-            nlohmann::json json;
+			auto& response = responder->_connectionContext.lock()->_response;
+			nlohmann::json json;
             json["status"] = "ok";
-            responder->_connectionContext.lock()->_response->result(boost::beast::http::status::ok);
-            responder->_connectionContext.lock()->_response->set(boost::beast::http::field::content_type, "application/json");
-            responder->_connectionContext.lock()->_response->set(boost::beast::http::field::keep_alive, "false");
-            responder->_connectionContext.lock()->_response->body() = json.dump();
+			response->set(boost::beast::http::field::access_control_allow_origin, "http://localhost:5500");
+			response->result(boost::beast::http::status::ok);
+            response->set(boost::beast::http::field::content_type, "application/json");
+            response->set(boost::beast::http::field::keep_alive, "false");
+            response->body() = json.dump();
         };
         server.AddRequestHandler("/ready", boost::beast::http::verb::get, readinessResponder);
         auto metricsResponder = [](const std::shared_ptr<AsyncMethodResponder> & responder)
@@ -35,10 +36,11 @@ struct EndpointPopulator
             boost::asio::post(responder->_connectionContext.lock()->_strand, [liveKeeper, json = std::move(json)]() mutable
             {
                 auto responder = liveKeeper._responder; 
-                responder->_connectionContext.lock()->_response->result(boost::beast::http::status::ok);
-                responder->_connectionContext.lock()->_response->set(boost::beast::http::field::content_type, "application/json");
-                responder->_connectionContext.lock()->_response->set(boost::beast::http::field::keep_alive, "false");
-                responder->_connectionContext.lock()->_response->body() = json.dump();
+				auto& response = responder->_connectionContext.lock()->_response;
+                response->result(boost::beast::http::status::ok);
+                response->set(boost::beast::http::field::content_type, "application/json");
+                response->set(boost::beast::http::field::keep_alive, "false");
+                response->body() = json.dump();
             });
         };
         server.AddRequestHandler("/metrics", boost::beast::http::verb::get, metricsResponder);
@@ -47,7 +49,6 @@ struct EndpointPopulator
 		{
 			Logger(Info) << "WebSocket client connected";
 		};
-
 		auto onWebSocketText = [](const std::shared_ptr<WebSocketSession>& session, const std::string& data)
 		{
 			Logger(Info) << "WebSocket text received: " << data;
