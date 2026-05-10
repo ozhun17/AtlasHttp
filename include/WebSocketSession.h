@@ -6,6 +6,7 @@
 #include <string>
 #include <deque>
 #include <variant>
+#include <any>
 #include <boost/beast/websocket.hpp>
 #include "ConnectionContext.h"
 #include "MetricManager.h"
@@ -91,15 +92,7 @@ struct WebSocketSession : public std::enable_shared_from_this<WebSocketSession>
 
     void Start()
     {
-        if (_connectionContext->IsSecure())
-        {
-            Log(HttpServerLogLevel::Error, "WebSocket over TLS/SSL is not supported by this minimal implementation.");
-            return;
-        }
-        // Create websocket stream from underlying plain tcp socket
-        auto socketPtr = std::get<std::shared_ptr<boost::asio::ip::tcp::socket>>(_connectionContext->_stream);
-        using WsType = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
-        _wsStream = std::make_shared<WsType>(std::move(*socketPtr));
+        Log(HttpServerLogLevel::Verbose, "Starting WebSocket session");
 
         // Accept the websocket handshake using the already-read HTTP request
         auto self = shared_from_this();
@@ -118,10 +111,29 @@ struct WebSocketSession : public std::enable_shared_from_this<WebSocketSession>
             DoRead();
         };
 
-        // call async_accept with the stored request
-        // Accept the websocket handshake using the stored request
-        auto & ws = *_wsStream;
-        ws.async_accept(_connectionContext->_request, boost::asio::bind_executor(_connectionContext->_strand, acceptHandler));
+        if (_connectionContext->IsSecure())
+        {
+            // Create websocket stream from SSL socket
+            auto sslPtr = std::get<std::shared_ptr<ConnectionContext::SslSocket>>(_connectionContext->_stream);
+            // Store raw pointer for use in async operations (ConnectionContext keeps shared_ptr alive)
+            using WsType = boost::beast::websocket::stream<ConnectionContext::SslSocket&>;
+            auto wsStream = std::make_shared<WsType>(*sslPtr);
+            _sslWsStream = std::move(wsStream);
+            _isSecure = true;
+
+            _sslWsStream->async_accept(_connectionContext->_request, boost::asio::bind_executor(_connectionContext->_strand, acceptHandler));
+        }
+        else
+        {
+            // Create websocket stream from underlying plain tcp socket
+            auto socketPtr = std::get<std::shared_ptr<boost::asio::ip::tcp::socket>>(_connectionContext->_stream);
+            using WsType = boost::beast::websocket::stream<boost::asio::ip::tcp::socket&>;
+            auto wsStream = std::make_shared<WsType>(*socketPtr);
+            _plainWsStream = std::move(wsStream);
+            _isSecure = false;
+
+            _plainWsStream->async_accept(_connectionContext->_request, boost::asio::bind_executor(_connectionContext->_strand, acceptHandler));
+        }
     }
 
     void SendText(const std::string& message)
@@ -167,68 +179,131 @@ private:
     {
         _buffer.consume(_buffer.size());
         auto self = shared_from_this();
-        _wsStream->async_read(_buffer, boost::asio::bind_executor(_connectionContext->_strand,
-            [this, self](const boost::system::error_code& ec, std::size_t bytes)
-            {
-                if (ec)
-                {
-                    Log(HttpServerLogLevel::Verbose, "WebSocket read error: " + ec.message());
-                    if (_onDisconnect)
-                    {
-                        _connected = false;
-                        _onDisconnect(self);
-                    }
-                    return;
-                }
-                const auto data = boost::beast::buffers_to_string(_buffer.data());
 
-                // Check if the stream is in text mode (default is true for websockets)
-                bool isTextFrame = _wsStream->is_message_done();
-
-                if (_onTextMessage && isTextFrame)
-                {
-                    _onTextMessage(self, data);
-                }
-                else if (_onBinaryMessage && !isTextFrame)
-                {
-                    _onBinaryMessage(self, data);
-                }
-                DoRead();
-            }
-        ));
-    }
-
-    void DoWrite()
-    {
-        if (_sendQueue.empty())
+        if (_isSecure)
         {
-            return;
-        }
-        auto isBinary = _sendQueue.front().second;
-        auto self = shared_from_this();
-
-        _wsStream->text(!isBinary);
-        _wsStream->async_write(boost::asio::buffer(_sendQueue.front().first), boost::asio::bind_executor(_connectionContext->_strand,
-            [this, self](const boost::system::error_code& ec, std::size_t)
-            {
-                if (ec)
+            _sslWsStream->async_read(_buffer, boost::asio::bind_executor(_connectionContext->_strand,
+                [this, self](const boost::system::error_code& ec, std::size_t bytes)
                 {
-                    if(!_connected)
+                    if (ec)
                     {
-						Log(HttpServerLogLevel::Info, "Couldn't write since websocket disconnected: " + ec.message());
+                        Log(HttpServerLogLevel::Verbose, "WebSocket read error: " + ec.message());
+                        if (_onDisconnect)
+                        {
+                            _connected = false;
+                            _onDisconnect(self);
+                        }
                         return;
                     }
-                    Log(HttpServerLogLevel::Error, "WebSocket write error: " + ec.message());
-                    return;
+                    const auto data = boost::beast::buffers_to_string(_buffer.data());
+
+                    // Check if the stream is in text mode (default is true for websockets)
+                    bool isTextFrame = _isSecure ? _sslWsStream->is_message_done() : _plainWsStream->is_message_done();
+
+                    if (_onTextMessage && isTextFrame)
+                    {
+                        _onTextMessage(self, data);
+                    }
+                    else if (_onBinaryMessage && !isTextFrame)
+                    {
+                        _onBinaryMessage(self, data);
+                    }
+                    DoRead();
                 }
-                _sendQueue.pop_front();
-                if (!_sendQueue.empty())
+            ));
+        }
+        else
+        {
+            _plainWsStream->async_read(_buffer, boost::asio::bind_executor(_connectionContext->_strand,
+                [this, self](const boost::system::error_code& ec, std::size_t bytes)
                 {
-                    DoWrite();
+                    if (ec)
+                    {
+                        Log(HttpServerLogLevel::Verbose, "WebSocket read error: " + ec.message());
+                        if (_onDisconnect)
+                        {
+                            _connected = false;
+                            _onDisconnect(self);
+                        }
+                        return;
+                    }
+                    const auto data = boost::beast::buffers_to_string(_buffer.data());
+
+                    // Check if the stream is in text mode (default is true for websockets)
+                    bool isTextFrame = _isSecure ? _sslWsStream->is_message_done() : _plainWsStream->is_message_done();
+
+                    if (_onTextMessage && isTextFrame)
+                    {
+                        _onTextMessage(self, data);
+                    }
+                    else if (_onBinaryMessage && !isTextFrame)
+                    {
+                        _onBinaryMessage(self, data);
+                    }
+                    DoRead();
                 }
-            }
-        ));
+            ));
+        }
     }
+
+	void DoWrite()
+	{
+		if (_sendQueue.empty())
+		{
+			return;
+		}
+		auto isBinary = _sendQueue.front().second;
+		auto self = shared_from_this();
+
+		if (_isSecure)
+		{
+			_sslWsStream->text(!isBinary);
+			_sslWsStream->async_write(boost::asio::buffer(_sendQueue.front().first), boost::asio::bind_executor(_connectionContext->_strand,
+				[this, self](const boost::system::error_code& ec, std::size_t)
+				{
+					if (ec)
+					{
+						if(!_connected)
+						{
+							Log(HttpServerLogLevel::Info, "Couldn't write since websocket disconnected: " + ec.message());
+							return;
+						}
+						Log(HttpServerLogLevel::Error, "WebSocket write error: " + ec.message());
+						return;
+					}
+					_sendQueue.pop_front();
+					if (!_sendQueue.empty())
+					{
+						DoWrite();
+					}
+				}
+			));
+		}
+		else
+		{
+			_plainWsStream->text(!isBinary);
+			_plainWsStream->async_write(boost::asio::buffer(_sendQueue.front().first), boost::asio::bind_executor(_connectionContext->_strand,
+				[this, self](const boost::system::error_code& ec, std::size_t)
+				{
+					if (ec)
+					{
+						if(!_connected)
+						{
+							Log(HttpServerLogLevel::Info, "Couldn't write since websocket disconnected: " + ec.message());
+							return;
+						}
+						Log(HttpServerLogLevel::Error, "WebSocket write error: " + ec.message());
+						return;
+					}
+					_sendQueue.pop_front();
+					if (!_sendQueue.empty())
+					{
+						DoWrite();
+					}
+				}
+			));
+		}
+	}
 
     void Log(HttpServerLogLevel level, const std::string& message)
     {
@@ -247,9 +322,12 @@ private:
     boost::beast::flat_buffer _buffer;
     std::deque<std::pair<std::string, bool>> _sendQueue;
     bool _connected = true;
-    // websocket stream for plain TCP
-    using PlainWs = boost::beast::websocket::stream<boost::asio::ip::tcp::socket>;
-    std::shared_ptr<PlainWs> _wsStream;
+    bool _isSecure = false;
+    // WebSocket streams for plain TCP and SSL
+    using PlainWs = boost::beast::websocket::stream<boost::asio::ip::tcp::socket&>;
+    using SslWs = boost::beast::websocket::stream<ConnectionContext::SslSocket&>;
+    std::shared_ptr<PlainWs> _plainWsStream;
+    std::shared_ptr<SslWs> _sslWsStream;
     std::function<void(HttpServerLogLevel, std::string)> _onLog;
 
 };

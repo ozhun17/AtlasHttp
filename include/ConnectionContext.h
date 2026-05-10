@@ -186,4 +186,26 @@ struct ConnectionContext
 };
 
 AtlasHttpNamespaceEnd
+
+// Specialization for Beast WebSocket async_teardown
+namespace boost {
+namespace beast {
+namespace websocket {
+
+template<class TeardownHandler>
+void async_teardown(
+    role_type,
+    Atlas::Http::ConnectionContext::SslSocket& socket,
+    TeardownHandler&& handler)
+{
+    boost::system::error_code ec;
+    socket.shutdown(ec);
+    socket.lowest_layer().close(ec);
+    handler(ec);
+}
+
+} // namespace websocket
+} // namespace beast
+} // namespace boost
+
 #endif
