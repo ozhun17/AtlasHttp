@@ -13,4 +13,15 @@ enum class HttpServerLogLevel
 	Off
 };
 
+enum class HttpClientLogLevel
+{
+	Verbose,
+	Debug,
+	Info,
+	Warning,
+	Error,
+	Critical,
+	Off
+};
+
 AtlasHttpNamespaceEnd

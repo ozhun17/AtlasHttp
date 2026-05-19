@@ -36,7 +36,7 @@ option(BUILD_EXAMPLES "Build examples" OFF)
 
 
 find_package(Boost 1.90 REQUIRED
-        COMPONENTS log log_setup program_options beast regex filesystem thread system
+        COMPONENTS log log_setup program_options beast regex filesystem thread system url
 )
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -63,6 +63,7 @@ target_link_libraries(AtlasHttp INTERFACE
     Boost::filesystem
     Boost::thread
     Boost::system
+    Boost::url
     OpenSSL::SSL
     OpenSSL::Crypto
     nlohmann_json::nlohmann_json
