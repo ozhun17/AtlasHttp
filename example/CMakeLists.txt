@@ -1,4 +1,4 @@
-add_executable(AtlasHttpExample main_client_example.cpp)
+add_executable(AtlasHttpExample main.cpp)
 
 add_subdirectory(external/atlas-logger)
 include_directories(external/atlas-logger/include)
